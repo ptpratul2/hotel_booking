@@ -1,0 +1,164 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("Book a Room") }}{% endblock %}
+
+{% block page_content %}
+<div class="container py-5">
+	<div class="row justify-content-center">
+		<div class="col-lg-8">
+			<h1 class="mb-4">{{ _("Book a Room") }}</h1>
+
+			<div class="card shadow-sm mb-4">
+				<div class="card-body">
+					<h5 class="card-title mb-3">{{ _("Select Dates & Room") }}</h5>
+					<div class="row g-3">
+						<div class="col-md-6">
+							<label class="form-label">{{ _("Check-in") }}</label>
+							<input type="date" id="check-in" class="form-control" required>
+						</div>
+						<div class="col-md-6">
+							<label class="form-label">{{ _("Check-out") }}</label>
+							<input type="date" id="check-out" class="form-control" required>
+						</div>
+						<div class="col-md-6">
+							<label class="form-label">{{ _("Room Type") }}</label>
+							<select id="room-type" class="form-select">
+								<option value="">{{ _("Select Room Type") }}</option>
+								{% for rt in room_types %}
+								<option value="{{ rt.name }}" data-price="{{ rt.base_price or 0 }}">{{ rt.room_type_name }} - {{ rt.base_price or 0 }} / night</option>
+								{% endfor %}
+							</select>
+						</div>
+						<div class="col-md-6">
+							<label class="form-label">{{ _("Rooms") }}</label>
+							<input type="number" id="rooms-required" class="form-control" value="1" min="1" max="10">
+						</div>
+						<div class="col-12">
+							<button type="button" id="check-availability" class="btn btn-primary">
+								{{ _("Check Availability") }}
+							</button>
+							<span id="availability-result" class="ms-2"></span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="card shadow-sm mb-4" id="guest-form-card" style="display: none;">
+				<div class="card-body">
+					<h5 class="card-title mb-3">{{ _("Guest Details") }}</h5>
+					<div class="row g-3">
+						<div class="col-md-6">
+							<label class="form-label">{{ _("Guest Name") }} *</label>
+							<input type="text" id="guest-name" class="form-control" required>
+						</div>
+						<div class="col-md-6">
+							<label class="form-label">{{ _("Phone") }}</label>
+							<input type="tel" id="guest-phone" class="form-control">
+						</div>
+						<div class="col-12">
+							<label class="form-label">{{ _("Email") }} *</label>
+							<input type="email" id="guest-email" class="form-control" required>
+						</div>
+						<div class="col-12">
+							<div id="booking-error" class="alert alert-danger" style="display: none;"></div>
+							<button type="button" id="book-btn" class="btn btn-success btn-lg">
+								{{ _("Book Now") }}
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	frappe.ready(function() {
+		const today = new Date().toISOString().split('T')[0];
+		document.getElementById('check-in').min = today;
+
+		document.getElementById('check-in').addEventListener('change', function() {
+			const checkIn = this.value;
+			if (checkIn) {
+				const minOut = new Date(checkIn);
+				minOut.setDate(minOut.getDate() + 1);
+				document.getElementById('check-out').min = minOut.toISOString().split('T')[0];
+			}
+		});
+
+		document.getElementById('check-availability').addEventListener('click', function() {
+			const checkIn = document.getElementById('check-in').value;
+			const checkOut = document.getElementById('check-out').value;
+			const roomType = document.getElementById('room-type').value;
+			const roomsRequired = parseInt(document.getElementById('rooms-required').value) || 1;
+
+			if (!checkIn || !checkOut || !roomType) {
+				frappe.msgprint(__('Please fill all fields'));
+				return;
+			}
+
+			frappe.call({
+				method: 'hotel_booking.api.availability.check_room_availability',
+				args: {
+					room_type: roomType,
+					check_in: checkIn,
+					check_out: checkOut
+				},
+				callback: function(r) {
+					const result = document.getElementById('availability-result');
+					if (r.message !== undefined) {
+						const available = parseInt(r.message);
+						if (available >= roomsRequired) {
+							result.innerHTML = '<span class="text-success">' + __('{0} room(s) available').format(available) + '</span>';
+							document.getElementById('guest-form-card').style.display = 'block';
+						} else {
+							result.innerHTML = '<span class="text-danger">' + __('Only {0} room(s) available').format(available) + '</span>';
+							document.getElementById('guest-form-card').style.display = 'none';
+						}
+					}
+				}
+			});
+		});
+
+		document.getElementById('book-btn').addEventListener('click', function() {
+			const checkIn = document.getElementById('check-in').value;
+			const checkOut = document.getElementById('check-out').value;
+			const roomType = document.getElementById('room-type').value;
+			const roomsRequired = parseInt(document.getElementById('rooms-required').value) || 1;
+			const guestName = document.getElementById('guest-name').value;
+			const guestPhone = document.getElementById('guest-phone').value;
+			const guestEmail = document.getElementById('guest-email').value;
+
+			if (!guestName || !guestEmail) {
+				frappe.msgprint(__('Please enter guest name and email'));
+				return;
+			}
+
+			const btn = this;
+			btn.disabled = true;
+
+			frappe.call({
+				method: 'hotel_booking.api.booking.create_booking',
+				args: {
+					guest_name: guestName,
+					phone: guestPhone,
+					email: guestEmail,
+					room_type: roomType,
+					check_in: checkIn,
+					check_out: checkOut,
+					rooms_required: roomsRequired
+				},
+				callback: function(r) {
+					btn.disabled = false;
+					if (r.message && r.message.booking_id) {
+						window.location.href = '/book-success?booking_id=' + encodeURIComponent(r.message.booking_id);
+					} else if (r.exc) {
+						document.getElementById('booking-error').textContent = r.exc || __('Booking failed');
+						document.getElementById('booking-error').style.display = 'block';
+					}
+				}
+			});
+		});
+	});
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+[project]
+name = "hotel_booking"
+authors = [
+    {name = "Frappe", email = "support@frappe.io"}
+]
+description = "Production-grade Hotel Booking System for Frappe/ERPNext"
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = [
+    "razorpay>=1.4.0",
+]
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"

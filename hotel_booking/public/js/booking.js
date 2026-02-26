@@ -1,0 +1,1 @@
+// Booking doctype client script
