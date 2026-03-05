@@ -12,15 +12,58 @@ import frappe
 from frappe import _
 
 
+# @frappe.whitelist(allow_guest=True)
+# def get_room_types():
+# 	"""Return list of room types for booking form. Uses ignore_permissions for public booking page."""
+# 	return frappe.get_all(
+# 		"Room Type",
+# 		fields=["name", "room_type_name", "base_price", "max_guests", "image", "description"],
+# 		order_by="room_type_name",
+# 		ignore_permissions=True,
+# 	)
+
 @frappe.whitelist(allow_guest=True)
 def get_room_types():
-	"""Return list of room types for booking form. Uses ignore_permissions for public booking page."""
-	return frappe.get_all(
-		"Room Type",
-		fields=["name", "room_type_name", "base_price", "max_guests"],
-		order_by="room_type_name",
-		ignore_permissions=True,
-	)
+
+    rooms = frappe.get_all(
+        "Room Type",
+        fields=[
+            "name",
+            "room_type_name",
+            "base_price",
+            "max_guests",
+            "image",
+			"description"
+        ]
+    )
+
+    for room in rooms:
+
+        room["features"] = frappe.get_all(
+            "Room Feature",
+            filters={"parent": room["name"]},
+            fields=["feature_name", "icon", "description"]
+        )
+
+        room["amenities"] = frappe.get_all(
+            "Room Amenity",
+            filters={"parent": room["name"]},
+            fields=["amenity_name", "icon", "description"]
+        )
+        
+        room["tariffs"] = frappe.get_all(
+            "Room Tariff",
+            filters={"parent": room["name"]},
+            fields=["category", "price"]
+        )
+        
+        room["pricing"] = frappe.get_all(
+            "Room Pricing",
+            filters={"parent": room["name"]},
+            fields=["plan_name", "category", "price"]
+        )
+
+    return rooms
 
 
 @frappe.whitelist(allow_guest=True)

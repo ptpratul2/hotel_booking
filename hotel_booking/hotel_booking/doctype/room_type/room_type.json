@@ -2,12 +2,23 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "field:room_type_name",
- "creation": "2025-01-01 00:00:00.000000",
+ "creation": "2025-01-01 00:00:00",
  "doctype": "DocType",
  "document_type": "Document",
  "editable_grid": 1,
  "engine": "InnoDB",
- "field_order": ["room_type_name", "max_guests", "base_price", "description"],
+ "field_order": [
+  "room_type_name",
+  "max_guests",
+  "base_price",
+  "description",
+  "title",
+  "image",
+  "features",
+  "amenities",
+  "regular_tariff",
+  "pricing"
+ ],
  "fields": [
   {
    "fieldname": "room_type_name",
@@ -15,7 +26,8 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Room Type Name",
-   "reqd": 1
+   "reqd": 1,
+   "unique": 1
   },
   {
    "fieldname": "max_guests",
@@ -35,14 +47,49 @@
    "fieldname": "description",
    "fieldtype": "Text",
    "label": "Description"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image"
+  },
+  {
+   "fieldname": "features",
+   "fieldtype": "Table",
+   "label": "Features",
+   "options": "Room Feature"
+  },
+  {
+   "fieldname": "amenities",
+   "fieldtype": "Table",
+   "label": "Amenities",
+   "options": "Room Amenity"
+  },
+  {
+   "fieldname": "regular_tariff",
+   "fieldtype": "Table",
+   "label": "Regular Tariff",
+   "options": "Room Tariff"
+  },
+  {
+   "fieldname": "pricing",
+   "fieldtype": "Table",
+   "label": "Pricing",
+   "options": "Room Pricing"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-01 00:00:00.000000",
- "modified_by": "Administrator",
+ "modified": "2026-03-05 13:09:06.344827",
+ "modified_by": "ajayshivhare047@gmail.com",
  "module": "Hotel Booking",
  "name": "Room Type",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
@@ -58,6 +105,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
