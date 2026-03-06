@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-05 12:27:11.736798",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "amenity_name",
+  "icon",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "amenity_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Amenity Name"
+  },
+  {
+   "fieldname": "icon",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Icon"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Description"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-06 09:24:59.440002",
+ "modified_by": "Administrator",
+ "module": "Hotel Booking",
+ "name": "Room Amenity",
+ "owner": "ajayshivhare047@gmail.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
