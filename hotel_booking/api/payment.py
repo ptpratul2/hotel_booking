@@ -39,10 +39,10 @@ def create_payment_order(booking_id: str) -> dict:
 	if not booking_id:
 		frappe.throw(_("Booking ID is required"))
 
-	if not frappe.db.exists("Booking", booking_id):
+	if not frappe.db.exists("Bookings", booking_id):
 		frappe.throw(_("Booking {0} not found").format(booking_id))
 
-	booking = frappe.get_doc("Booking", booking_id)
+	booking = frappe.get_doc("Bookings", booking_id)
 
 	if booking.status == "Cancelled":
 		frappe.throw(_("Cannot pay for cancelled booking"))
@@ -51,6 +51,7 @@ def create_payment_order(booking_id: str) -> dict:
 		frappe.throw(_("Booking is already paid"))
 
 	key, secret = _get_razorpay_credentials()
+	frappe.log_error(str(booking.total_amount), "Booking Data for Payment Order")
 	if not key or not secret:
 		frappe.throw(
 			_("Razorpay is not configured. Set razorpay_api_key and razorpay_api_secret in site config.")
@@ -138,9 +139,9 @@ def razorpay_webhook():
 		order_id = entity.get("order_id")
 
 		if order_id:
-			booking = frappe.db.get_value("Booking", {"razorpay_order_id": order_id}, "name")
+			booking = frappe.db.get_value("Bookings", {"razorpay_order_id": order_id}, "name")
 			if booking:
-				doc = frappe.get_doc("Booking", booking)
+				doc = frappe.get_doc("Bookings", booking)
 				doc.payment_status = "Paid"
 				doc.status = "Confirmed"
 				doc.save(ignore_permissions=True)

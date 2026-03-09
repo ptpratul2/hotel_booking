@@ -13,30 +13,82 @@ from frappe import _
 from hotel_booking.api.availability import check_room_availability
 
 
+# def _get_seasonal_price(room_type: str, check_in: str, check_out: str) -> float:
+# 	"""
+# 	Get price per night - seasonal if exists, else base price.
+# 	Uses SQL for performance.
+# 	"""
+# 	# Check if any date in range falls in seasonal price
+# 	seasonal = frappe.db.sql(
+# 		"""
+# 		SELECT price FROM `tabSeasonal Price`
+# 		WHERE room_type = %(room_type)s
+# 		AND from_date <= %(check_out)s
+# 		AND to_date >= %(check_in)s
+# 		ORDER BY from_date DESC
+# 		LIMIT 1
+# 		""",
+# 		{"room_type": room_type, "check_in": check_in, "check_out": check_out},
+# 		as_dict=True,
+# 	)
+
+# 	if seasonal:
+# 		return float(seasonal[0].price)
+# 	frappe.log_error(f"seasonal:{seasonal[0].price}")
+
+# 	rt = frappe.get_cached_doc("Room Type", room_type)
+# 	frappe.log_error(f"base_price:{rt.base_price}")
+# 	return float(rt.base_price or 0)
+
 def _get_seasonal_price(room_type: str, check_in: str, check_out: str) -> float:
-	"""
-	Get price per night - seasonal if exists, else base price.
-	Uses SQL for performance.
-	"""
-	# Check if any date in range falls in seasonal price
-	seasonal = frappe.db.sql(
-		"""
-		SELECT price FROM `tabSeasonal Price`
-		WHERE room_type = %(room_type)s
-		AND from_date <= %(check_out)s
-		AND to_date >= %(check_in)s
-		ORDER BY from_date DESC
-		LIMIT 1
-		""",
-		{"room_type": room_type, "check_in": check_in, "check_out": check_out},
-		as_dict=True,
-	)
+    """
+    Get price per night - seasonal if exists and > 0, else base price.
+    Uses SQL for performance.
+    """
 
-	if seasonal:
-		return float(seasonal[0].price)
+    seasonal = frappe.db.sql(
+        """
+        SELECT price
+        FROM `tabSeasonal Price`
+        WHERE room_type = %(room_type)s
+        AND from_date <= %(check_out)s
+        AND to_date >= %(check_in)s
+        ORDER BY from_date DESC
+        LIMIT 1
+        """,
+        {
+            "room_type": room_type,
+            "check_in": check_in,
+            "check_out": check_out
+        },
+        as_dict=True,
+    )
 
-	rt = frappe.get_cached_doc("Room Type", room_type)
-	return float(rt.base_price or 0)
+    # Seasonal price found
+    if seasonal:
+        seasonal_price = float(seasonal[0].price or 0)
+
+        # If seasonal price > 0 use it
+        if seasonal_price > 0:
+            frappe.logger().info(
+                f"Using seasonal price for {room_type}: {seasonal_price}"
+            )
+            return seasonal_price
+
+        # Seasonal price = 0 → fallback
+        frappe.logger().info(
+            f"Seasonal price is 0, falling back to base price for {room_type}"
+        )
+
+    # Fallback to base price
+    rt = frappe.get_cached_doc("Room Type", room_type)
+    base_price = float(rt.base_price or 0)
+
+    frappe.logger().info(
+        f"Using base price for {room_type}: {base_price}"
+    )
+
+    return base_price
 
 
 def _allocate_rooms(room_type: str, check_in: str, check_out: str, count: int) -> list:
@@ -55,7 +107,7 @@ def _allocate_rooms(room_type: str, check_in: str, check_out: str, count: int) -
 		AND r.name NOT IN (
 			SELECT DISTINCT br.room
 			FROM `tabBooking Room` br
-			INNER JOIN `tabBooking` b ON b.name = br.parent
+			INNER JOIN `tabBookings` b ON b.name = br.parent
 			WHERE br.room_type = %(room_type)s
 			AND b.status != 'Cancelled'
 			AND b.docstatus = 0
@@ -80,6 +132,8 @@ def create_booking(
 	check_in: str,
 	check_out: str,
 	rooms_required: int = 1,
+ 	adults: int = 1,
+	children: int = 0,
 ) -> dict:
 	"""
 	Create a booking: create/fetch guest, check availability, allocate rooms, create booking.
@@ -103,6 +157,12 @@ def create_booking(
 	rooms_required = int(rooms_required or 1)
 	if rooms_required < 1:
 		frappe.throw(_("At least 1 room is required"))
+  
+	adults = int(adults or 1)
+	children = int(children or 0)
+	frappe.log_error(f"adults:{adults}, children:{children}")
+	if adults < 1:
+		frappe.throw(_("At least 1 adult is required"))
 
 	# Parse dates
 	try:
@@ -117,6 +177,15 @@ def create_booking(
 	if not frappe.db.exists("Room Type", room_type):
 		frappe.throw(_("Room Type {0} does not exist").format(room_type))
 
+	# Validate guest capacity
+	room_type_doc = frappe.get_doc("Room Type", room_type)
+	frappe.log_error(f"room_type:{room_type}")
+
+	if (adults + children) > (room_type_doc.max_guests * rooms_required):
+		frappe.throw(
+			_("Guest count exceeds maximum capacity for selected room(s)")
+		)
+  
 	# Check availability (re-validate at creation time)
 	available = check_room_availability(room_type, check_in, check_out)
 	if available < rooms_required:
@@ -155,6 +224,7 @@ def create_booking(
 	# Get price and calculate
 	price_per_night = _get_seasonal_price(room_type, check_in, check_out)
 	nights = (check_out_dt - check_in_dt).days
+	frappe.log_error(f"price_per_night:{price_per_night}, nights:{nights}")
 
 	# Allocate rooms (within transaction for concurrency)
 	allocated = _allocate_rooms(room_type, check_in, check_out, rooms_required)
@@ -180,10 +250,14 @@ def create_booking(
 
 	booking = frappe.get_doc(
 		{
-			"doctype": "Booking",
+			# "doctype": "Booking",
+			"doctype": "Bookings",
 			"guest": guest,
 			"check_in": check_in,
 			"check_out": check_out,
+			"rooms_required": rooms_required,
+			"adults": adults,
+			"children": children,
 			"total_amount": total_amount,
 			"status": "Pending Payment",
 			"payment_status": "Unpaid",
@@ -193,4 +267,10 @@ def create_booking(
 	booking.insert(ignore_permissions=True)
 	frappe.db.commit()
 
-	return {"booking_id": booking.name, "total_amount": total_amount}
+	return {"booking_id": booking.name, "total_amount": total_amount, "rooms_required": rooms_required, "adults": adults, "children": children,}
+
+
+@frappe.whitelist(allow_guest=True)
+def get_room_price(room_type: str, check_in: str, check_out: str):
+    price = _get_seasonal_price(room_type, check_in, check_out)
+    return {"price": price}

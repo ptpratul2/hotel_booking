@@ -30,7 +30,7 @@ calendars = ["Booking"]
 # Document Events
 # ---------------
 doc_events = {
-	"Booking": {
+	"Bookings": {
 		"on_update": "hotel_booking.utils.email_notification.send_booking_confirmation_email",
 	}
 }
@@ -54,4 +54,15 @@ doc_events = {
 website_route_rules = [
 	{"from_route": "/book", "to_route": "book"},
 	{"from_route": "/book-success", "to_route": "book-success"},
+]
+
+
+fixtures = [
+    {
+        "doctype": "Custom Field",
+        "filters": [
+            ["dt", "=", "Contact"],
+            ["fieldname", "=", "custom_notes"]
+        ]
+    }
 ]
