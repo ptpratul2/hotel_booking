@@ -17,10 +17,7 @@
   "payment_status",
   "razorpay_order_id",
   "rooms_section",
-  "rooms",
-  "amended_from",
-  "adults",
-  "children"
+  "rooms"
  ],
  "fields": [
   {
@@ -92,30 +89,12 @@
    "fieldtype": "Table",
    "label": "Rooms",
    "options": "Booking Room"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "options": "Booking"
-  },
-  {
-   "fieldname": "adults",
-   "fieldtype": "Int",
-   "label": "Adults",
-   "non_negative": 1
-  },
-  {
-   "fieldname": "children",
-   "fieldtype": "Int",
-   "label": "Children",
-   "non_negative": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-09 09:37:44.544576",
+ "modified": "2026-03-10 10:17:57.335401",
  "modified_by": "Administrator",
  "module": "Hotel Booking",
  "name": "Bookings",

@@ -8,34 +8,34 @@ from frappe.utils import now_datetime
 
 
 def send_booking_confirmation_email(doc, method=None):
-	"""
-	Called from doc_events on Booking on_update.
-	Send email when status changes to Confirmed.
-	"""
+  """
+  Called from doc_events on Booking on_update.
+  Send email when status changes to Confirmed.
+  """
 
-	# Only proceed if status is Confirmed
-	if doc.status != "Confirmed":
-		return
+  # Only proceed if status is Confirmed
+  if doc.status != "Confirmed":
+    return
 
-	# Prevent duplicate email if already confirmed before
-	previous = doc.get_doc_before_save()
-	if previous and previous.status == "Confirmed":
-		return
+  # Prevent duplicate email if already confirmed before
+  previous = doc.get_doc_before_save()
+  if previous and previous.status == "Confirmed":
+    return
 
-	# Get guest
-	guest = frappe.get_doc("Guest", doc.guest)
-	if not guest.email:
-		return
+  # Get guest
+  guest = frappe.get_doc("Guest", doc.guest)
+  if not guest.email:
+    return
 
-	hotel_contact = _get_hotel_contact()
+  hotel_contact = _get_hotel_contact()
+  
+  subject = _("Booking Confirmed - {0}").format(doc.name)
+ 
+  # ----------------------------
+  # Build Email Template
+  # ----------------------------
 
-	subject = _("Booking Confirmed - {0}").format(doc.name)
-
-	# ----------------------------
-	# Build Email Template
-	# ----------------------------
-
-	message = f"""
+  message = f"""
 <div style="font-family: Arial, Helvetica, sans-serif; background-color:#f4f6f9; padding:30px 0;">
   <div style="max-width:650px; margin:0 auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
 
@@ -59,6 +59,8 @@ def send_booking_confirmation_email(doc, method=None):
         <p style="margin:5px 0;"><strong>Booking ID:</strong> {doc.name}</p>
         <p style="margin:5px 0;"><strong>Check-in:</strong> {doc.check_in}</p>
         <p style="margin:5px 0;"><strong>Check-out:</strong> {doc.check_out}</p>
+      
+        
         <p style="margin:5px 0; font-size:16px;">
           <strong>Total Amount:</strong> 
           <span style="color:#2c3e50; font-weight:bold;">
@@ -75,6 +77,9 @@ def send_booking_confirmation_email(doc, method=None):
           <tr style="background:#f1f3f5;">
             <th align="left">Room Type</th>
             <th align="left">Room</th>
+            <th align="right">Adults</th>
+            <th align="right">Children</th>
+
             <th align="center">Nights</th>
             <th align="right">Price/Night</th>
             <th align="right">Amount</th>
@@ -83,18 +88,21 @@ def send_booking_confirmation_email(doc, method=None):
         <tbody>
 """
 
-	for row in doc.rooms or []:
-		message += f"""
+  for row in doc.rooms or []:
+    message += f"""
           <tr style="border-top:1px solid #e0e0e0;">
             <td>{row.room_type}</td>
             <td>{row.room}</td>
+            <td align="right">{row.adults}</td>
+            <td align="right">{row.children}</td>
             <td align="center">{row.nights}</td>
             <td align="right">{frappe.format_value(row.price_per_night, {'fieldtype': 'Currency'})}</td>
             <td align="right">{frappe.format_value(row.amount, {'fieldtype': 'Currency'})}</td>
+           
           </tr>
 """
 
-	message += f"""
+  message += f"""
         </tbody>
       </table>
 
@@ -113,36 +121,36 @@ def send_booking_confirmation_email(doc, method=None):
 </div>
 """
 
-	# Send Email
-	frappe.sendmail(
-		recipients=[guest.email],
-		subject=subject,
-		message=message,
-		delayed=False,
-	)
+  # Send Email
+  frappe.sendmail(
+    recipients=[guest.email],
+    subject=subject,
+    message=message,
+    delayed=False,
+  )
 
 
 def _get_hotel_contact() -> str:
-	"""Get hotel contact info for email."""
+  """Get hotel contact info for email."""
 
-	try:
-		settings = frappe.get_single("Hotel Booking Settings")
-		if settings and getattr(settings, "hotel_contact", None):
-			return str(settings.hotel_contact).strip()
-	except Exception:
-		pass
+  try:
+    settings = frappe.get_single("Hotel Booking Settings")
+    if settings and getattr(settings, "hotel_contact", None):
+      return str(settings.hotel_contact).strip()
+  except Exception:
+    pass
 
-	# Fallback to first hotel record
-	hotel = frappe.db.get_value(
-		"Hotel", {}, ["hotel_name", "address", "city"], as_dict=True
-	)
+  # Fallback to first hotel record
+  hotel = frappe.db.get_value(
+    "Hotel", {}, ["hotel_name", "address", "city"], as_dict=True
+  )
 
-	if hotel:
-		parts = [str(hotel.hotel_name or "")]
-		if hotel.get("address"):
-			parts.append(str(hotel.address))
-		if hotel.get("city"):
-			parts.append(str(hotel.city))
-		return ", ".join(p for p in parts if p)
+  if hotel:
+    parts = [str(hotel.hotel_name or "")]
+    if hotel.get("address"):
+      parts.append(str(hotel.address))
+    if hotel.get("city"):
+      parts.append(str(hotel.city))
+    return ", ".join(p for p in parts if p)
 
-	return ""
+  return ""
