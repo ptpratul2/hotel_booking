@@ -269,10 +269,17 @@ def create_booking(
     booking.insert(ignore_permissions=True)
     frappe.db.commit()
 
-    return {"booking_id": booking.name, "total_amount": total_amount, "rooms_required": rooms_required, "adults": adults, "children": children}
-
+    # return {"booking_id": booking.name, "total_amount": total_amount, "rooms_required": rooms_required, "adults": adults, "children": children}
+    return frappe._dict({
+        "booking_id": str(booking.name),
+        "total_amount": float(total_amount),
+        "rooms_required": int(rooms_required),
+        "adults": int(adults),
+        "children": int(children),
+})
 
 @frappe.whitelist(allow_guest=True)
 def get_room_price(room_type: str, check_in: str, check_out: str):
     price = _get_seasonal_price(room_type, check_in, check_out)
-    return {"price": price}
+    # return {"price": price}
+    return frappe._dict({"price": float(price)})

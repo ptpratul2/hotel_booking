@@ -38,3 +38,8 @@ bench build
 ## License
 
 MIT
+
+Note:
+1.In doctype Room Type, uncheck private option image file field to visible in frontend.
+
+2.Booking doctype contains a bug or issue to show its record so there is new doctype is available Bookings for same operations.

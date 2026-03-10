@@ -19,16 +19,13 @@ def _get_razorpay_credentials():
         secret = frappe.db.get_single_value("Hotel Booking Settings", "api_secret")
     except Exception:
         key = secret = None
-    
-    key = "rzp_test_SKjOxIF0t8e7iK"
-    # key = key or frappe.conf.get("razorpay_api_key")
-    secret = "4x6urFmEDnMxA5M3oKsr4sl7"
-    # secret = secret or frappe.conf.get("razorpay_api_secret")
+    key = key or frappe.conf.get("razorpay_api_key")
+    secret = secret or frappe.conf.get("razorpay_api_secret")
     
     return key, secret
 
-
 @frappe.whitelist(allow_guest=True)
+
 def create_payment_order(booking_id: str) -> dict:
     """
     Create Razorpay order for booking payment.
@@ -65,9 +62,9 @@ def create_payment_order(booking_id: str) -> dict:
         import razorpay
     except ImportError:
         frappe.throw(_("Please install razorpay: pip install razorpay"))
-
+        
     client = razorpay.Client(auth=(key, secret))
-
+    
     # Amount in paise (Razorpay uses smallest currency unit)
     amount_paise = int(float(booking.total_amount or 0) * 100)
     if amount_paise < 100:  # Razorpay minimum
@@ -82,7 +79,7 @@ def create_payment_order(booking_id: str) -> dict:
             "guest": booking.guest,
         },
     }
-
+    
     order = client.order.create(data=order_data)
     order_id = order.get("id")
 
@@ -90,13 +87,20 @@ def create_payment_order(booking_id: str) -> dict:
     booking.db_set("razorpay_order_id", order_id, update_modified=False)
     frappe.db.commit()
 
-    return {
-        "order_id": order_id,
-        "amount": amount_paise,
-        "currency": "INR",
-        "key": key,
-        "booking_id": booking_id,
-    }
+    # return {
+    #     "order_id": order_id,
+    #     "amount": amount_paise,
+    #     "currency": "INR",
+    #     "key": key,
+    #     "booking_id": booking_id,
+    # }
+    return frappe._dict({
+	    "order_id": str(order_id),
+	    "amount": int(amount_paise),
+	    "currency": "INR",
+	    "key": str(key),
+	    "booking_id": str(booking_id),
+    })
 
 
 def _get_webhook_secret():
