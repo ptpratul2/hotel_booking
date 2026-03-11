@@ -94,14 +94,22 @@ def create_payment_order(booking_id: str) -> dict:
     #     "key": key,
     #     "booking_id": booking_id,
     # }
-    return frappe._dict({
-	    "order_id": str(order_id),
-	    "amount": int(amount_paise),
-	    "currency": "INR",
-	    "key": str(key),
-	    "booking_id": str(booking_id),
-    })
-
+    # return frappe._dict({
+	#     "order_id": str(order_id),
+	#     "amount": int(amount_paise),
+	#     "currency": "INR",
+	#     "key": str(key),
+	#     "booking_id": str(booking_id),
+    # })
+    response_data = {
+        "order_id": str(order_id),
+        "amount": int(amount_paise),
+        "currency": "INR",
+        "key": str(key),
+        "booking_id": str(booking_id)
+    }
+    
+    return response_data
 
 def _get_webhook_secret():
     """Get Razorpay webhook secret (different from API secret)."""
