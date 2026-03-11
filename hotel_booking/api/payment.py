@@ -94,13 +94,13 @@ def create_payment_order(booking_id: str) -> dict:
     #     "key": key,
     #     "booking_id": booking_id,
     # }
-    return frappe._dict({
-	    "order_id": str(order_id),
-	    "amount": int(amount_paise),
-	    "currency": "INR",
-	    "key": str(key),
-	    "booking_id": str(booking_id),
-    })
+    return {
+        "order_id": str(order_id),
+        "amount": int(amount_paise),
+        "currency": "INR",
+        "key": str(key),
+        "booking_id": str(booking_id),
+    }
 
 
 def _get_webhook_secret():
