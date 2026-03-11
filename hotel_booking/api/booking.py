@@ -125,15 +125,16 @@ def _allocate_rooms(room_type: str, check_in: str, check_out: str, count: int) -
 
 @frappe.whitelist(allow_guest=True)
 def create_booking(
-    guest_name: str,
-    phone: str,
-    email: str,
-    room_type: str,
-    check_in: str,
-    check_out: str,
+    guest_name: str = "",
+    phone: str = "",
+    email: str = "",
+    room_type: str = "",
+    check_in: str = "",
+    check_out: str = "",
     rooms_required: int = 1,
     adults: int = 1,
     children: int = 0,
+    **kwargs,
 ) -> dict:
     """
     Create a booking: create/fetch guest, check availability, allocate rooms, create booking.
@@ -150,6 +151,30 @@ def create_booking(
     Returns:
         dict with booking_id
     """
+    # Backward/compat payload normalization (keep function name unchanged)
+    payload = dict(kwargs or {})
+
+    if not payload and getattr(frappe, "request", None):
+        try:
+            payload = frappe.parse_json(frappe.request.get_data(as_text=True) or "{}") or {}
+        except Exception:
+            payload = {}
+
+    first_name = (payload.get("first_name") or payload.get("firstName") or "").strip()
+    last_name = (payload.get("last_name") or payload.get("lastName") or "").strip()
+
+    if not guest_name:
+        guest_name = (payload.get("guest_name") or payload.get("guestName") or f"{first_name} {last_name}").strip()
+
+    phone = phone or payload.get("phone") or payload.get("mobile") or ""
+    email = email or payload.get("email") or ""
+    room_type = room_type or payload.get("room_type") or payload.get("roomType") or payload.get("room") or ""
+    check_in = check_in or payload.get("check_in") or payload.get("checkIn") or payload.get("checkin") or ""
+    check_out = check_out or payload.get("check_out") or payload.get("checkOut") or payload.get("checkout") or ""
+    rooms_required = rooms_required or payload.get("rooms_required") or payload.get("rooms") or 1
+    adults = adults or payload.get("adults") or 1
+    children = children or payload.get("children") or 0
+
     # Validate inputs
     if not all([guest_name, room_type, check_in, check_out]):
         frappe.throw(_("Guest name, room type, check-in and check-out are required"))
